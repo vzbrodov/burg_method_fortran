@@ -21,11 +21,11 @@ are naturally complex (for example, two coupled real-valued time series).
 ## File Structure
 
 
- `my_prec.f90` --> Floating-point precision definition (`mp`) 
- `mem_lib.f90` --> Burg algorithm and MEM spectrum routines 
- `preprocess.f90` --> Data preprocessing (centering, detrending)
- `eop_io.f90` --> Example input routines
- `main.f90` --> Example test program
+- `my_prec.f90` --> Floating-point precision definition (`mp`) 
+- `mem_lib.f90` --> Burg algorithm and MEM spectrum routines 
+- `preprocess.f90` --> Data preprocessing (centering, detrending)
+- `eop_io.f90` --> Example input routines
+- `main.f90` --> Example test program
 
 
 ## Usage
