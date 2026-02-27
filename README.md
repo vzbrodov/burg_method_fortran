@@ -7,7 +7,7 @@ from **complex-valued time series**.
 The code is designed for scientific and geophysical applications where signals
 are naturally complex (for example, two coupled real-valued time series).
 
----
+
 
 ## Features
 
@@ -17,7 +17,6 @@ are naturally complex (for example, two coupled real-valued time series).
   - MEM power spectrum
 - Modular and easy to integrate
 
----
 
 ## File Structure
 
@@ -25,30 +24,9 @@ are naturally complex (for example, two coupled real-valued time series).
  `my_prec.f90` --> Floating-point precision definition (`mp`) 
  `mem_lib.f90` --> Burg algorithm and MEM spectrum routines 
  `preprocess.f90` --> Data preprocessing (centering, detrending)
- `eop_io.f90` --> Example input routines 
- `main.f90` --> Example test program 
----
+ `eop_io.f90` --> Example input routines
+ `main.f90` --> Example test program
 
-## Mathematical Background (Brief)
-
-For an AR(m) process:
-
-\[
-x(n) + \sum_{k=1}^{m} a_k x(n-k) = e(n)
-\]
-
-The Maximum Entropy (MEM) power spectrum is:
-
-\[
-P(f) = \frac{\sigma^2}
-{\left|1 + \sum_{k=1}^{m} a_k e^{-i 2\pi f k}\right|^2}
-\]
-
-where:
-- \( a_k \) are AR coefficients
-- \( \sigma^2 \) is the residual variance
-
----
 
 ## Usage
 
