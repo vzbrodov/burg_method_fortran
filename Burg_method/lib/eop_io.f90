@@ -3,6 +3,53 @@ module eop_io
     implicit none
 contains
 
+!=========================================================
+! Read one complex value per line in Fortran (re, im) form
+!=========================================================
+subroutine read_complex_series(filename, z)
+
+    character(len=*), intent(in)         :: filename
+    complex(mp), allocatable, intent(out):: z(:)
+
+    integer            :: unit, ios, count, i
+    character(len=512) :: line
+    complex(mp)        :: value
+
+    count = 0
+    open(newunit=unit, file=filename, status='old', action='read', iostat=ios)
+    if (ios /= 0) error stop "read_complex_series: cannot open input file"
+
+    do
+        read(unit, '(A)', iostat=ios) line
+        if (ios /= 0) exit
+        line = adjustl(line)
+        if (len_trim(line) == 0) cycle
+        if (line(1:1) == '#') cycle
+        read(line, *, iostat=ios) value
+        if (ios /= 0) error stop "read_complex_series: invalid complex value"
+        count = count + 1
+    end do
+
+    if (count == 0) error stop "read_complex_series: no data"
+    rewind(unit)
+    allocate(z(count))
+
+    i = 0
+    do
+        read(unit, '(A)', iostat=ios) line
+        if (ios /= 0) exit
+        line = adjustl(line)
+        if (len_trim(line) == 0) cycle
+        if (line(1:1) == '#') cycle
+        read(line, *, iostat=ios) value
+        if (ios /= 0) error stop "read_complex_series: invalid complex value"
+        i = i + 1
+        z(i) = value
+    end do
+    close(unit)
+
+end subroutine read_complex_series
+
 
 !=========================================================
 ! Read PM-X and PM-Y from IERS EOP file

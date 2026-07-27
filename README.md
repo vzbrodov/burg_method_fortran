@@ -37,6 +37,33 @@ The implementation follows this idea:
 
 This repository looks like a research / working project rather than a packaged library. The README therefore describes the current structure and workflow of the example program, not a fully generalized API.
 
+### Running the `test64` example
+
+From the repository root:
+
+```sh
+gfortran -std=f2008 -Wall -Wextra -fcheck=all \
+  Burg_method/lib/my_prec.f90 \
+  Burg_method/lib/eop_io.f90 \
+  Burg_method/lib/mem_lib.f90 \
+  Burg_method/main.f90 \
+  -o burg_test64
+./burg_test64
+```
+
+The program reads 64 complex samples from `test64`, fits an AR(15)
+model, and writes:
+
+- `burg_coefficients.txt` — lag, real part, and imaginary part of each
+  coefficient (including the fixed coefficient `a(0) = 1`);
+- `burg_spectrum.txt` — the 64-point MEM spectrum on the normalized
+  frequency grid `[-0.5, 0.5)` cycles per sample.
+
+The `test64` values match Marple's published test sequence.  The
+coefficients can differ slightly from the printed table because that table
+was produced with single-precision complex arithmetic, while this project
+uses double precision (`mp = 8`).
+
 ---
 
 ## Русский
@@ -74,3 +101,30 @@ This repository looks like a research / working project rather than a packaged l
 ### Состояние проекта
 
 По структуре это скорее исследовательский / рабочий проект, чем оформленная библиотека. Поэтому README описывает текущую организацию кода и сценарий запуска примера, а не универсальный публичный API.
+
+### Запуск примера `test64`
+
+Из корня репозитория:
+
+```sh
+gfortran -std=f2008 -Wall -Wextra -fcheck=all \
+  Burg_method/lib/my_prec.f90 \
+  Burg_method/lib/eop_io.f90 \
+  Burg_method/lib/mem_lib.f90 \
+  Burg_method/main.f90 \
+  -o burg_test64
+./burg_test64
+```
+
+Программа читает 64 комплексные точки из `test64`, строит модель AR(15)
+и создаёт:
+
+- `burg_coefficients.txt` — номер лага, действительная и мнимая части
+  каждого коэффициента (включая фиксированный коэффициент `a(0) = 1`);
+- `burg_spectrum.txt` — MEM-спектр из 64 точек на нормированной сетке
+  частот `[-0.5, 0.5)` цикла на отсчёт.
+
+Значения в `test64` соответствуют опубликованной тестовой
+последовательности Марпла. Коэффициенты могут немного отличаться от
+печатной таблицы: она была рассчитана с одинарной точностью комплексной
+арифметики, а проект использует двойную точность (`mp = 8`).
