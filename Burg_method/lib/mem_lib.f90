@@ -11,10 +11,14 @@ subroutine burg_mem(x, N, m, power, var_out, a_coeffs)
   real(mp), intent(out)                 :: var_out
   complex(mp), intent(out), optional    :: a_coeffs(m)
 
-  integer                               :: k, i, j, maxn
+  integer                               :: k, i, j
   complex(mp)                           :: mu, t1, t2
   complex(mp), allocatable              :: f(:), b(:), Ak(:)
-  real(mp)                              :: Dk
+  real(mp)                              :: Dk, rho
+
+  if (N < 2) error stop "burg_mem: at least two samples are required"
+  if (m < 1 .or. m >= N) error stop "burg_mem: order must satisfy 1 <= m < N"
+  if (size(power) /= N/2) error stop "burg_mem: power must have size N/2"
 
   allocate(f(N), b(N), Ak(0:m))
 
@@ -24,6 +28,7 @@ subroutine burg_mem(x, N, m, power, var_out, a_coeffs)
 
   f = x
   b = x
+  rho = sum(abs(x)**2) / real(N, mp)
 
   ! --- initial Dk ---
   Dk = 0.0_mp
@@ -42,15 +47,21 @@ subroutine burg_mem(x, N, m, power, var_out, a_coeffs)
      do i = 1, N-k-1
         mu = mu + f(i+k+1) * conjg(b(i))
      end do
+     if (Dk <= tiny(Dk)) error stop "burg_mem: non-positive denominator"
      mu = -2.0_mp * mu / Dk
+     if (abs(mu) >= 1.0_mp) error stop "burg_mem: unstable reflection coefficient"
+     rho = (1.0_mp - abs(mu)**2) * rho
 
-     maxn = (k+1)/2
-     do j = 0, maxn
-        t1 = Ak(j)       + mu * conjg(Ak(k+1-j))
-        t2 = Ak(k+1-j)   + mu * conjg(Ak(j))
-        Ak(j)       = t1
-        Ak(k+1-j)   = t2
+     ! Levinson recursion.  Update each symmetric pair exactly once;
+     ! this ordering also follows Marple's reference implementation.
+     do j = 1, (k+1)/2
+        t1 = Ak(j)
+        Ak(j) = t1 + mu * conjg(Ak(k+1-j))
+        if (j /= k+1-j) then
+           Ak(k+1-j) = Ak(k+1-j) + mu * conjg(t1)
+        end if
      end do
+     Ak(k+1) = mu
 
      do i = 1, N-k-1
         t1 = f(i+k+1) + mu * b(i)
@@ -71,7 +82,7 @@ subroutine burg_mem(x, N, m, power, var_out, a_coeffs)
      end do
   end if
 
-  var_out = Dk / real(N, mp)
+  var_out = rho
   power = 0.0_mp
 
   deallocate(f, b, Ak)
@@ -87,24 +98,50 @@ subroutine mem_spectrum(a, m, var, power)
   real(mp), intent(in)      :: var
   real(mp), intent(out)     :: power(:)
 
-  integer                   :: i, k, nfreq
-  real(mp)                  :: f, twopi
-  complex(mp)               :: denom, ex
+  integer                   :: i, nfreq
+  real(mp), allocatable     :: frequency(:)
 
-  twopi = 2.0_mp * acos(-1.0_mp)
   nfreq = size(power)
+  allocate(frequency(nfreq))
 
   do i = 1, nfreq
-     f = real(i-1, mp) / real(2*nfreq, mp)
+     frequency(i) = real(i-1, mp) / real(2*nfreq, mp)
+  end do
 
+  call mem_spectrum_grid(a, m, var, frequency, power)
+  deallocate(frequency)
+
+end subroutine mem_spectrum
+
+subroutine mem_spectrum_grid(a, m, var, frequency, power)
+  use my_prec
+  implicit none
+
+  integer, intent(in)       :: m
+  complex(mp), intent(in)   :: a(m)
+  real(mp), intent(in)      :: var
+  real(mp), intent(in)      :: frequency(:)
+  real(mp), intent(out)     :: power(:)
+
+  integer                   :: i, k
+  real(mp)                  :: twopi
+  complex(mp)               :: denom, ex
+
+  if (size(power) /= size(frequency)) then
+     error stop "mem_spectrum_grid: frequency/power size mismatch"
+  end if
+
+  twopi = 2.0_mp * acos(-1.0_mp)
+
+  do i = 1, size(frequency)
      denom = (1.0_mp, 0.0_mp)
      do k = 1, m
-        ex = exp( cmplx(0.0_mp, -twopi * f * real(k,mp), mp) )
+        ex = exp(cmplx(0.0_mp, -twopi*frequency(i)*real(k,mp), mp))
         denom = denom + a(k) * ex
      end do
 
-     power(i) = var / real( denom * conjg(denom) )
+     power(i) = var / abs(denom)**2
   end do
 
-end subroutine mem_spectrum
+end subroutine mem_spectrum_grid
 end module mem_lib
