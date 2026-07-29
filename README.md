@@ -1,7 +1,7 @@
 # burg-method-fortran
 
 [![CI](https://github.com/vzbrodov/burg_method_fortran/actions/workflows/ci.yml/badge.svg)](https://github.com/vzbrodov/burg_method_fortran/actions/workflows/ci.yml)
-[![DOI](https://zenodo.org/badge/1163219836.svg)](https://doi.org/10.5281/zenodo.21683153)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21683153.svg)](https://doi.org/10.5281/zenodo.21683153)
 
 A small Fortran library for Burg autoregressive modelling and Maximum
 Entropy Method (MEM) spectral estimation of **complex-valued** time series.
