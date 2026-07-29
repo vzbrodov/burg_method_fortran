@@ -1,6 +1,7 @@
 name = "burg-method"
 version = "0.1.0"
-author = "Vlad Zbrodov"
+license = "GPL-3.0-only"
+author = "Vladislav Zbrodov"
 description = "Burg autoregressive modelling and MEM spectra for complex time series"
 categories = ["signal-processing"]
 keywords = ["burg", "autoregressive", "mem", "spectral-estimation"]

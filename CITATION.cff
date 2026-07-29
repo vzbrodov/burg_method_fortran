@@ -1,0 +1,21 @@
+cff-version: 1.2.0
+message: "If you use this software in research, please cite it using the metadata below."
+title: "burg-method-fortran"
+type: software
+authors:
+  - family-names: "Zbrodov"
+    given-names: "Vladislav"
+version: 0.1.0
+license: GPL-3.0-only
+repository-code: "https://github.com/vzbrodov/burg_method_fortran"
+url: "https://github.com/vzbrodov/burg_method_fortran"
+abstract: >-
+  A Fortran library for Burg autoregressive modelling and Maximum Entropy
+  Method spectral estimation of complex-valued time series.
+keywords:
+  - "Burg method"
+  - "autoregressive modelling"
+  - "complex time series"
+  - "maximum entropy method"
+  - "spectral estimation"
+  - "Fortran"
