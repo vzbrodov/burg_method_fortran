@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Set up Fortran Package Manager
+        uses: fortran-lang/setup-fpm@v7
+
+      - name: Test the fpm package
+        run: fpm test
+
+      - name: Build with runtime checks
+        run: |
+          mkdir -p build
+          gfortran -std=f2008 -Wall -Wextra -Werror -pedantic \
+            -fcheck=all -J build \
+            src/burg_method.f90 test/test_burg_method.f90 \
+            -o build/test_burg_method
+
+      - name: Run tests
+        run: ./build/test_burg_method

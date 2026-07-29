@@ -1,0 +1,25 @@
+name = "burg-method"
+version = "0.1.0"
+author = "Vlad Zbrodov"
+description = "Burg autoregressive modelling and MEM spectra for complex time series"
+categories = ["signal-processing"]
+keywords = ["burg", "autoregressive", "mem", "spectral-estimation"]
+homepage = "https://github.com/vzbrodov/burg_method_fortran"
+
+[build]
+auto-executables = false
+auto-examples = false
+auto-tests = false
+
+[library]
+source-dir = "src"
+
+[[example]]
+name = "marple"
+source-dir = "example"
+main = "marple_example.f90"
+
+[[test]]
+name = "burg-method-tests"
+source-dir = "test"
+main = "test_burg_method.f90"

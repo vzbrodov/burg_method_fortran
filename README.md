@@ -1,130 +1,290 @@
-# Burg Method for Complex Time Series in Fortran
+# burg-method-fortran
+
+[![CI](https://github.com/vzbrodov/burg_method_fortran/actions/workflows/ci.yml/badge.svg)](https://github.com/vzbrodov/burg_method_fortran/actions/workflows/ci.yml)
+
+A small Fortran library for Burg autoregressive modelling and Maximum
+Entropy Method (MEM) spectral estimation of **complex-valued** time series.
+
+[English](#english) · [Русский](#русский)
 
 ## English
 
-This repository contains a Fortran implementation of Burg's method for complex-valued time series and Maximum Entropy Method (MEM) spectral estimation.
+### Features
 
-The current example is focused on Earth orientation / polar motion analysis:
+- Burg estimation of complex AR models;
+- MEM power spectra on arbitrary normalized-frequency grids;
+- generic single- and double-precision APIs (`real32` and `real64`);
+- explicit status codes for applications that must handle errors themselves;
+- no external runtime dependencies;
+- an `fpm` package, a tested reference example, and continuous integration.
 
-- reading `PM-X` and `PM-Y` from an EOP text file;
-- centering and detrending the series;
-- removing the annual harmonic;
-- suppressing the Chandler component;
-- building a complex signal;
-- estimating AR coefficients with Burg's method;
-- computing MEM spectra for positive and negative frequencies.
+The library contains signal-processing routines only. It makes no assumptions
+about the physical origin of the samples.
 
-### Main files
+### Quick start
 
-- `Burg_method/main.f90` - example program that runs the full workflow
-- `Burg_method/lib/my_prec.f90` - floating-point precision definition
-- `Burg_method/lib/mem_lib.f90` - Burg AR estimation and MEM spectrum routines
-- `Burg_method/lib/preprocess.f90` - centering, detrending, harmonic removal, and filtering
-- `Burg_method/lib/eop_io.f90` - input/output for EOP polar motion data
-- `Burg_method/lib/rawdata_io.f90` - additional text data readers
+Add the repository to an
+[Fortran Package Manager](https://fpm.fortran-lang.org/) project:
 
-
-### Algorithm summary
-
-The implementation follows this idea:
-
-1. Convert two real-valued components into one complex series.
-2. Estimate autoregressive coefficients using Burg's recursion.
-3. Use the AR model and residual variance to evaluate the MEM spectrum.
-4. Compute spectra separately for positive and negative frequencies.
-
-### Project status
-
-This repository looks like a research / working project rather than a packaged library. The README therefore describes the current structure and workflow of the example program, not a fully generalized API.
-
-### Running the `test64` example
-
-From the repository root:
-
-```sh
-gfortran -std=f2008 -Wall -Wextra -fcheck=all \
-  Burg_method/lib/my_prec.f90 \
-  Burg_method/lib/eop_io.f90 \
-  Burg_method/lib/mem_lib.f90 \
-  Burg_method/main.f90 \
-  -o burg_test64
-./burg_test64
+```toml
+[dependencies]
+burg-method = { git = "https://github.com/vzbrodov/burg_method_fortran.git" }
 ```
 
-The program reads 64 complex samples from `test64`, fits an AR(15)
-model, and writes:
+The public API is provided by the `burg_method` module:
 
-- `burg_coefficients.txt` — lag, real part, and imaginary part of each
-  coefficient (including the fixed coefficient `a(0) = 1`);
-- `burg_spectrum.txt` — the 64-point MEM spectrum on the normalized
-  frequency grid `[-0.5, 0.5)` cycles per sample.
+```fortran
+use burg_method, only : dp, burg_fit, burg_spectrum
 
-The `test64` values match Marple's published test sequence.  The
-coefficients can differ slightly from the printed table because that table
-was produced with single-precision complex arithmetic, while this project
-uses double precision (`mp = 8`).
+complex(dp)              :: samples(128)
+complex(dp), allocatable :: coefficients(:)
+real(dp)                 :: variance
+real(dp)                 :: frequency(1024), power(1024)
+integer                  :: i
 
----
+! Fill SAMPLES with a uniformly sampled complex-valued series.
+
+call burg_fit(samples, order=20, coefficients=coefficients, &
+  variance=variance)
+
+do i = 1, size(frequency)
+  frequency(i) = -0.5_dp + real(i-1, dp) / real(size(frequency), dp)
+end do
+call burg_spectrum(coefficients, variance, frequency, power)
+```
+
+Frequencies are normalized in cycles per sample. For complex data, evaluate
+the whole interval `[-0.5, 0.5)` because the spectrum need not be symmetric.
+Multiply normalized frequencies by the sampling rate to obtain physical
+frequency units.
+
+`burg_fit` returns coefficients for the convention
+
+```text
+x(n) + a(1)x(n-1) + ... + a(m)x(n-m) = e(n),
+```
+
+and `variance` is the final prediction-error variance. `burg_spectrum`
+evaluates
+
+```text
+P(f) = variance / |1 + Σ a(k) exp(-i 2π f k)|².
+```
+
+The generic procedures accept either `complex(sp)`/`real(sp)` or
+`complex(dp)`/`real(dp)` arguments. All arguments in one call must have the
+same precision.
+
+### Error handling
+
+Both public procedures accept an optional integer `stat` argument. When it is
+present, they return one of:
+
+| Constant | Meaning |
+| --- | --- |
+| `BURG_SUCCESS` | Successful calculation |
+| `BURG_INVALID_SIZE` | Incompatible or empty arrays |
+| `BURG_INVALID_ORDER` | AR order is outside `0 <= order < N` |
+| `BURG_INVALID_VARIANCE` | Negative prediction-error variance |
+| `BURG_DEGENERATE_SERIES` | Zero prediction-error denominator |
+| `BURG_UNSTABLE_MODEL` | Reflection coefficient is not inside the unit circle |
+
+Without `stat`, an invalid call terminates with a descriptive `error stop`.
+
+### Marple reference example
+
+The repository retains the classic 64-sample complex test sequence from
+S. Lawrence Marple's
+[*Digital Spectral Analysis: With Applications*](https://books.google.com/books?id=D-1QAAAAMAAJ)
+(Prentice-Hall, 1987). The example fits an AR(15) model in single precision,
+matching the arithmetic used for the published reference coefficients.
+
+```sh
+fpm run --example marple
+```
+
+The program writes:
+
+- `marple_coefficients.txt` — AR coefficients, including `a(0) = 1`;
+- `marple_spectrum.txt` — a 64-point MEM spectrum on `[-0.5, 0.5)`.
+
+You may pass another file containing one Fortran-form complex value per line:
+
+```sh
+fpm run --example marple -- path/to/complex_series.dat
+```
+
+The bundled data and coefficients are also used as a regression test.
+
+### Build and test
+
+With `fpm`:
+
+```sh
+fpm test
+fpm run --example marple
+```
+
+With a Fortran 2008 compiler directly:
+
+```sh
+mkdir -p build
+gfortran -std=f2008 -Wall -Wextra -fcheck=all -J build \
+  src/burg_method.f90 test/test_burg_method.f90 \
+  -o build/test_burg_method
+./build/test_burg_method
+```
+
+### Repository layout
+
+```text
+src/                         Library source and public burg_method module
+example/marple_example.f90   Complete command-line example
+example/data/                Marple's 64-sample complex sequence
+test/                        Regression and API tests
+fpm.toml                     Fortran Package Manager manifest
+```
 
 ## Русский
 
-Этот репозиторий содержит реализацию метода Бёрга на Fortran для комплекснозначных временных рядов и оценивания спектра методом максимальной энтропии (MEM).
+`burg-method-fortran` — компактная библиотека на Fortran для построения
+авторегрессионных моделей методом Бёрга и оценки спектра методом максимальной
+энтропии (MEM) для **комплекснозначных** временных рядов.
 
-Текущий пример ориентирован на анализ движения полюса / параметров ориентации Земли:
+### Возможности
 
-- чтение `PM-X` и `PM-Y` из текстового файла EOP;
-- центрирование и удаление линейного тренда;
-- удаление годовой гармоники;
-- подавление чандлеровской компоненты;
-- формирование комплексного ряда;
-- оценивание коэффициентов AR методом Бёрга;
-- вычисление MEM-спектров для положительных и отрицательных частот.
+- оценка комплексных AR-моделей методом Бёрга;
+- MEM-спектр на произвольной сетке нормированных частот;
+- единый API для одинарной и двойной точности (`real32` и `real64`);
+- явные коды состояния для обработки ошибок вызывающей программой;
+- отсутствие внешних зависимостей времени выполнения;
+- пакет `fpm`, проверяемый эталонный пример и непрерывное тестирование.
 
-### Основные файлы
+Библиотека содержит только алгоритмы обработки сигналов и ничего не
+предполагает о физическом происхождении данных.
 
-- `Burg_method/main.f90` - пример программы, выполняющий полный цикл обработки
-- `Burg_method/lib/my_prec.f90` - задание рабочей точности
-- `Burg_method/lib/mem_lib.f90` - оценка AR-коэффициентов и расчёт MEM-спектра
-- `Burg_method/lib/preprocess.f90` - центрирование, детрендинг, удаление гармоник и фильтрация
-- `Burg_method/lib/eop_io.f90` - ввод/вывод данных полюсного движения
-- `Burg_method/lib/rawdata_io.f90` - дополнительные процедуры чтения текстовых данных
+### Быстрый старт
 
-### Кратко об алгоритме
+Добавьте репозиторий как зависимость
+[Fortran Package Manager](https://fpm.fortran-lang.org/):
 
-Идея реализации такая:
-
-1. Две вещественные компоненты объединяются в один комплексный ряд.
-2. Коэффициенты авторегрессии оцениваются рекурсией Бёрга.
-3. По AR-модели и остаточной дисперсии вычисляется MEM-спектр.
-4. Спектры считаются отдельно для положительных и отрицательных частот.
-
-### Состояние проекта
-
-По структуре это скорее исследовательский / рабочий проект, чем оформленная библиотека. Поэтому README описывает текущую организацию кода и сценарий запуска примера, а не универсальный публичный API.
-
-### Запуск примера `test64`
-
-Из корня репозитория:
-
-```sh
-gfortran -std=f2008 -Wall -Wextra -fcheck=all \
-  Burg_method/lib/my_prec.f90 \
-  Burg_method/lib/eop_io.f90 \
-  Burg_method/lib/mem_lib.f90 \
-  Burg_method/main.f90 \
-  -o burg_test64
-./burg_test64
+```toml
+[dependencies]
+burg-method = { git = "https://github.com/vzbrodov/burg_method_fortran.git" }
 ```
 
-Программа читает 64 комплексные точки из `test64`, строит модель AR(15)
-и создаёт:
+Публичный API находится в модуле `burg_method`:
 
-- `burg_coefficients.txt` — номер лага, действительная и мнимая части
-  каждого коэффициента (включая фиксированный коэффициент `a(0) = 1`);
-- `burg_spectrum.txt` — MEM-спектр из 64 точек на нормированной сетке
-  частот `[-0.5, 0.5)` цикла на отсчёт.
+```fortran
+use burg_method, only : dp, burg_fit, burg_spectrum
 
-Значения в `test64` соответствуют опубликованной тестовой
-последовательности Марпла. Коэффициенты могут немного отличаться от
-печатной таблицы: она была рассчитана с одинарной точностью комплексной
-арифметики, а проект использует двойную точность (`mp = 8`).
+complex(dp)              :: samples(128)
+complex(dp), allocatable :: coefficients(:)
+real(dp)                 :: variance
+real(dp)                 :: frequency(1024), power(1024)
+integer                  :: i
+
+! Заполните SAMPLES отсчётами равномерно дискретизированного комплексного ряда.
+
+call burg_fit(samples, order=20, coefficients=coefficients, &
+  variance=variance)
+
+do i = 1, size(frequency)
+  frequency(i) = -0.5_dp + real(i-1, dp) / real(size(frequency), dp)
+end do
+call burg_spectrum(coefficients, variance, frequency, power)
+```
+
+Частота задаётся в циклах на отсчёт. Для комплексного ряда следует
+рассчитывать весь интервал `[-0.5, 0.5)`, поскольку его спектр в общем случае
+несимметричен. Для перехода к физическим единицам умножьте нормированную
+частоту на частоту дискретизации.
+
+`burg_fit` использует соглашение
+
+```text
+x(n) + a(1)x(n-1) + ... + a(m)x(n-m) = e(n),
+```
+
+а `variance` содержит итоговую дисперсию ошибки предсказания.
+`burg_spectrum` вычисляет
+
+```text
+P(f) = variance / |1 + Σ a(k) exp(-i 2π f k)|².
+```
+
+Обобщённые процедуры принимают аргументы `complex(sp)`/`real(sp)` или
+`complex(dp)`/`real(dp)`. В одном вызове точность всех аргументов должна
+совпадать.
+
+### Обработка ошибок
+
+Обе публичные процедуры принимают необязательный целочисленный аргумент
+`stat`. Если он передан, процедура возвращает один из кодов:
+
+| Константа | Значение |
+| --- | --- |
+| `BURG_SUCCESS` | Вычисление выполнено |
+| `BURG_INVALID_SIZE` | Пустые или несовместимые массивы |
+| `BURG_INVALID_ORDER` | Порядок AR не удовлетворяет `0 <= order < N` |
+| `BURG_INVALID_VARIANCE` | Отрицательная дисперсия ошибки |
+| `BURG_DEGENERATE_SERIES` | Нулевой знаменатель ошибки предсказания |
+| `BURG_UNSTABLE_MODEL` | Коэффициент отражения вне единичного круга |
+
+Если `stat` не передан, некорректный вызов завершается понятным сообщением
+`error stop`.
+
+### Эталонный пример Марпла
+
+В репозитории сохранена классическая комплексная последовательность из
+64 отсчётов из книги S. Lawrence Marple
+[*Digital Spectral Analysis: With Applications*](https://books.google.com/books?id=D-1QAAAAMAAJ)
+(Prentice-Hall, 1987). Пример строит модель AR(15) в одинарной точности,
+чтобы соответствовать арифметике опубликованных эталонных коэффициентов.
+
+```sh
+fpm run --example marple
+```
+
+Программа создаёт:
+
+- `marple_coefficients.txt` — коэффициенты AR, включая `a(0) = 1`;
+- `marple_spectrum.txt` — MEM-спектр из 64 точек на интервале `[-0.5, 0.5)`.
+
+Можно передать другой файл с одним комплексным числом в формате Fortran на
+строку:
+
+```sh
+fpm run --example marple -- path/to/complex_series.dat
+```
+
+Встроенные данные и коэффициенты также используются в регрессионном тесте.
+
+### Сборка и тестирование
+
+Через `fpm`:
+
+```sh
+fpm test
+fpm run --example marple
+```
+
+Напрямую компилятором с поддержкой Fortran 2008:
+
+```sh
+mkdir -p build
+gfortran -std=f2008 -Wall -Wextra -fcheck=all -J build \
+  src/burg_method.f90 test/test_burg_method.f90 \
+  -o build/test_burg_method
+./build/test_burg_method
+```
+
+### Структура репозитория
+
+```text
+src/                         Исходный код библиотеки и модуль burg_method
+example/marple_example.f90   Полный пример командной строки
+example/data/                Комплексная последовательность Марпла
+test/                        Регрессионные тесты и тесты API
+fpm.toml                     Манифест Fortran Package Manager
+```

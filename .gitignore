@@ -1,4 +1,8 @@
+build/
 *.mod
-burg_test64
-burg_coefficients.txt
-burg_spectrum.txt
+*.o
+marple_coefficients.txt
+marple_spectrum.txt
+/burg_test64
+/burg_coefficients.txt
+/burg_spectrum.txt
