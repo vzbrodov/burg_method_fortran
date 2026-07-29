@@ -6,6 +6,8 @@ authors:
   - family-names: "Zbrodov"
     given-names: "Vladislav"
 version: 0.1.0
+doi: "10.5281/zenodo.21683155"
+date-released: 2026-07-29
 license: GPL-3.0-only
 repository-code: "https://github.com/vzbrodov/burg_method_fortran"
 url: "https://github.com/vzbrodov/burg_method_fortran"

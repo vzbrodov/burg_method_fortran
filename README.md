@@ -1,6 +1,7 @@
 # burg-method-fortran
 
 [![CI](https://github.com/vzbrodov/burg_method_fortran/actions/workflows/ci.yml/badge.svg)](https://github.com/vzbrodov/burg_method_fortran/actions/workflows/ci.yml)
+[![DOI](https://zenodo.org/badge/1163219836.svg)](https://doi.org/10.5281/zenodo.21683153)
 
 A small Fortran library for Burg autoregressive modelling and Maximum
 Entropy Method (MEM) spectral estimation of **complex-valued** time series.
@@ -115,6 +116,13 @@ fpm run --example marple -- path/to/complex_series.dat
 ```
 
 The bundled data and coefficients are also used as a regression test.
+
+### Citation
+
+If this library contributes to your research, please cite the archived
+software release: [burg-method-fortran v0.1.0](https://doi.org/10.5281/zenodo.21683155).
+GitHub also provides APA and BibTeX entries through the
+**Cite this repository** menu.
 
 ### Build and test
 
@@ -259,6 +267,14 @@ fpm run --example marple -- path/to/complex_series.dat
 ```
 
 Встроенные данные и коэффициенты также используются в регрессионном тесте.
+
+### Цитирование
+
+Если библиотека использовалась в исследовании, пожалуйста, процитируйте
+архивированный релиз:
+[burg-method-fortran v0.1.0](https://doi.org/10.5281/zenodo.21683155).
+Готовые записи в форматах APA и BibTeX доступны через меню GitHub
+**Cite this repository**.
 
 ### Сборка и тестирование
 
